@@ -6,10 +6,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Search</title>
+    <style>
+        th, td {
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
+
+<table >
+    <tr>
+        <td>
+            @helper.form(action = routes.Application.insert()) {
+            <button type="submit">Insert url</button>
+            }
+        </td>
+    </tr>
+</table>
+
+
 @helper.form(action = routes.Application.search()) {
-    @helper.inputText(searchForm("query"), '_label -> "Search")
+@helper.inputText(searchForm("query"), '_label -> "Search")
 }
 
 </body>

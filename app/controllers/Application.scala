@@ -27,10 +27,11 @@ object Application extends Controller {
       },
       query => {
         val result = index.search(query)
-        Ok(views.html.main(result.result))
+        Ok(views.html.result(result.result))
       }
     )
   }
+
 
   def insert = Action { implicit request =>
 
@@ -54,7 +55,7 @@ object Application extends Controller {
 
 
   def result = Action { implicit request =>
-    Ok(views.html.main(List()))
+    Ok(views.html.result(List()))
   }
 
 

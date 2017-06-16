@@ -6,13 +6,29 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        th, td {
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
-    <a>@msg</a>
-    <br>
-    @helper.form(action = routes.Application.insert()) {
-    @helper.inputText(insertForm("url"), '_label -> "insert url for crawl")
-    }
+
+
+<table >
+    <tr>
+        <td>
+            @helper.form(action = routes.Application.search()) {
+            <button type="submit">Search</button>
+            }
+        </td>
+    </tr>
+</table>
+<a>@msg</a>
+<br>
+@helper.form(action = routes.Application.insert()) {
+@helper.inputText(insertForm("url"), '_label -> "insert url for crawl")
+}
 
 </body>
 </html>

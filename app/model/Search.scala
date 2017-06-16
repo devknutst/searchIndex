@@ -23,7 +23,7 @@ class Index {
   def search(query: SearchQuery): SearchResult = {
     val words = query.query.split(" ").toList
     val found = searchForAll(words)
-    val ranked = makeRanking(found)
+    val ranked = makeRanking(found).take(1000)
     val result = ranked.map(id => buildResultItem(id, words))
     SearchResult(query.query, result)
   }
@@ -37,20 +37,20 @@ class Index {
 
   def buildResultItem(id: String, words: List[String]):ResultItem = {
     val page = pageMap(id)
-    val text = words.map(w => findTextForWord(w, page.text)) mkString ".."
+    val text = words.map(w => findTextForWord(w, page.text)) mkString "..."
     ResultItem(page.url, text)
   }
 
 
   def findTextForWord(word: String, text: String):String = {
     val index = text.indexOf(word)
-    if (index < 0) {
-      ""
-    } else {
+    if (index > -1) {
       val range = 15
       val begin = if (index < range) 0 else index - range
       val end = if (index + range >= text.length) text.length else (index + range)
       text.substring(begin, end)
+    } else {
+      ""
     }
   }
 
@@ -69,10 +69,14 @@ class Index {
     if (pageMap.contains(url)) "Url already exists."
     else {
       try {
-        val docc = Jsoup.connect(url).get
-        println(docc.body().text())
-        addToIndex(Page(url, docc.body().text()))
-        val links = docc.select("a").asScala.map(f => f.attr("href"))
+        val document = Jsoup.connect(url).get
+        val text = document.body().text()
+          .replace(",","")
+          .replace(".", "")
+          .replace(":","")
+          .replace(";","")
+        addToIndex(Page(url, text))
+        val links = document.select("a").asScala.map(f => f.attr("href"))
         val insideLinks = links.filter(l => l.startsWith(url))
         for (l <- insideLinks) {
           println("link intern" + l)
@@ -91,10 +95,12 @@ class Index {
     index = index ++ changeIndex(page)
   }
 
+
   def changeIndex(page: Page):Map[String, Set[String]] = {
     val words = page.text.split(" ")
     words.map(w => getUrls(w, page.url)).toMap
   }
+
 
   def getUrls(word: String, url: String):(String,Set[String]) = {
     val set = if (index.contains(word)) {

@@ -1,0 +1,45 @@
+
+@(result: List[model.ResultItem])
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Result</title>
+    <style>
+        th, td {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<table >
+    <tr>
+        <td>
+            @helper.form(action = routes.Application.search()) {
+            <button type="submit">Search</button>
+            }
+        </td>
+        <td>
+            @helper.form(action = routes.Application.insert()) {
+            <button type="submit">Insert url</button>
+            }
+        </td>
+    </tr>
+</table>
+
+
+<br>
+<ul>
+    @if(result.isEmpty) {
+    <h1>Nothing to display</h1>
+    } else {
+    @for(p <- result) {
+    <a href="@p.url" target="_blank">@p.url</a>
+    <li>@p.text</li>
+    <br>
+    }
+    }
+</ul>
+</body>
+</html>
