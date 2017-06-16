@@ -93,6 +93,7 @@ class Index {
   def addToIndex(page: Page) = {
     pageMap = pageMap + (page.url -> page)
     index = index ++ changeIndex(page)
+    index
   }
 
 

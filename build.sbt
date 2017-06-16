@@ -10,6 +10,7 @@ resolvers += "Sonatype Snapshots" at "http://oss.sonatype.org/content/repositori
 
 libraryDependencies ++= Seq(
   "net.ruippeixotog" %% "scala-scraper" % "2.0.0-RC2",
-  "org.jsoup" % "jsoup" % "1.8.3"
+  "org.jsoup" % "jsoup" % "1.8.3",
+  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.0" % "test"
 )
 
