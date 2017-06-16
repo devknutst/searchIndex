@@ -1,0 +1,18 @@
+@(insertForm: Form[model.InsertUrl], msg: String)
+@import helper._
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <a>@msg</a>
+    <br>
+    @helper.form(action = routes.Application.insert()) {
+    @helper.inputText(insertForm("url"), '_label -> "insert url for crawl")
+    }
+
+</body>
+</html>
