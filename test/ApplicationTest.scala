@@ -4,6 +4,7 @@ import org.scalatestplus.play.PlaySpec
 
 class ApplicationTest extends PlaySpec {
 
+
   val index = new Index()
 
 
