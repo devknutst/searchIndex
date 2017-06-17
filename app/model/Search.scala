@@ -29,6 +29,12 @@ class Index {
   }
 
 
+  /**
+    * Return for any word the pages in the index. If no value in the index, then it gives back an
+    * empty set.
+    * @param words
+    * @return a list of sets of urls. Any set of urls belong to one word.
+    */
   def searchForAll(words: List[String]):List[Set[String]] = words.map(w => searchForSingleWord(w))
 
 
@@ -42,6 +48,12 @@ class Index {
   }
 
 
+  /**
+    * Makes an extraction for any word in the complete text of the page.
+    * @param word search word.
+    * @param text complete text
+    * @return extraction or if the word not found, an empty string.
+    */
   def findTextForWord(word: String, text: String):String = {
     val index = text.indexOf(word)
     if (index > -1) {
@@ -55,16 +67,36 @@ class Index {
   }
 
 
+  /**
+    * Makes an ranking for the found urls. An url can be in more the one of the given sets. It will be counted, how often
+    * an url appears in the different sets. As more often it appears in the sets, as higher it will be climbing in
+    * the ranking.
+    * @param all urls in different sets.
+    * @return the urls in a ranking order as list.
+    */
   def makeRanking(all: List[Set[String]]): List[String] = {
     val counted = all.foldLeft(Map[String, Int]())((b,a) => count(a, b))
     counted.toList.sortBy(_._2).reverse.map(_._1)
   }
 
+  /**
+    * Add any url to the given map.
+    * @param ids the urls.
+    * @param m map which count how often an url appears.
+    * @return a map, which contains the values of the url and how often it appeared.
+    */
   def count(ids: Set[String], m: Map[String, Int]):Map[String, Int] = {
     m ++ ids.map(id => if (m.contains(id)) (id, m(id) + 1) else (id, 1)).toMap
   }
 
 
+  /**
+    * Add an url and the text for this url to the index. The function works recursiv for all links on this site
+    * which connect to subdomains of this side.
+    * For example www.test.de would insert www.test.de/news to, if there is a link on this page.
+    * @param url
+    * @return a message if the page could be stored successful or not.
+    */
   def addUrl(url: String):String = {
     if (pageMap.contains(url)) "Url already exists."
     else {
@@ -90,6 +122,11 @@ class Index {
   }
 
 
+  /**
+    * Add page to index and internal map.
+    * @param page
+    * @return index.
+    */
   def addToIndex(page: Page) = {
     pageMap = pageMap + (page.url -> page)
     index = index ++ changeIndex(page)
@@ -97,12 +134,23 @@ class Index {
   }
 
 
+  /**
+    * Add page to index and give back an changed index.
+    * @param page
+    * @return the changed index.
+    */
   def changeIndex(page: Page):Map[String, Set[String]] = {
     val words = page.text.split(" ")
     words.map(w => getUrls(w, page.url)).toMap
   }
 
 
+  /**
+    * Returns the urls for a given word, including the new url, which is given to the function.
+    * @param word
+    * @param url new url.
+    * @return the word and all urls for this word.
+    */
   def getUrls(word: String, url: String):(String,Set[String]) = {
     val set = if (index.contains(word)) {
       index(word)
