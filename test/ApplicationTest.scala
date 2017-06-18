@@ -1,4 +1,4 @@
-import model.{Index, Page, SearchQuery}
+import model.{Index, Page, Search, SearchQuery}
 import org.scalatestplus.play.PlaySpec
 
 
@@ -6,6 +6,8 @@ class ApplicationTest extends PlaySpec {
 
 
   val index = new Index()
+
+  val search = new Search()
 
 
   "A index must " must {
@@ -28,28 +30,28 @@ class ApplicationTest extends PlaySpec {
   }
 
 
-  "A index search " must {
+  "The index url scraper " must {
+    " show an error message for an non existing url." in {
+      index.addUrl("xyz") mustEqual "Malformed URL: xyz"
+    }
+  }
+
+  "A search over this index " must {
 
     " find pages which contains a search word. " in {
-      index.search(SearchQuery("Text")).result.size mustBe 4
+      search.search(SearchQuery("Text"), index.getIndex, index.getPageMap).result.size mustBe 4
     }
 
     " show an empty result for a non existing word." in {
-      index.search(SearchQuery("abc")).result.size mustBe 0
+      search.search(SearchQuery("abc"), index.getIndex, index.getPageMap).result.size mustBe 0
     }
 
     " show a correct ranking if the search query contains more than one word. " in {
-      val result = index.search(SearchQuery("Text one."))
+      val result = search.search(SearchQuery("Text one."), index.getIndex, index.getPageMap)
 
       result.result.head.url mustBe "pageOne"
       result.result.tail.head.url must not be "pageOne"
 
-    }
-  }
-
-  "The index url scraper " must {
-    " show an error message for an non existing url." in {
-      index.addUrl("xyz") mustEqual "Malformed URL: xyz"
     }
   }
 

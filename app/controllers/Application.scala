@@ -1,6 +1,6 @@
 package controllers
 
-import model.{Index, InsertUrl, SearchQuery}
+import model.{Index, InsertUrl, Search, SearchQuery}
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.data.format.Formats._
@@ -10,6 +10,8 @@ object Application extends Controller {
 
 
   val index = new Index()
+
+  val rankSearch = new Search()
 
 
 
@@ -26,7 +28,7 @@ object Application extends Controller {
         BadRequest(views.html.search(formWithErrors))
       },
       query => {
-        val result = index.search(query)
+        val result = rankSearch.search(query, index.getIndex, index.getPageMap)
         Ok(views.html.result(result.result))
       }
     )

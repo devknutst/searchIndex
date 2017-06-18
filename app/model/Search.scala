@@ -12,19 +12,22 @@ case class InsertUrl(url: String)
 
 
 
-class Index {
+
+class Search {
 
 
-  private var index = Map[String, Set[String]]()
-
-  private var pageMap = Map[String, Page]()
-
-
-  def search(query: SearchQuery): SearchResult = {
+  /**
+    * Search for given words and give back the pages in a ranked list.
+    * @param query search words
+    * @param index index
+    * @param pageMap map for pages.
+    * @return pages as ranked list.
+    */
+  def search(query: SearchQuery, index: Map[String, Set[String]], pageMap: Map[String, Page]) : SearchResult = {
     val words = query.query.split(" ").toList
-    val found = searchForAll(words)
+    val found = searchForAll(words, index)
     val ranked = makeRanking(found).take(1000)
-    val result = ranked.map(id => buildResultItem(id, words))
+    val result = ranked.map(id => buildResultItem(id, words, pageMap))
     SearchResult(query.query, result)
   }
 
@@ -35,18 +38,19 @@ class Index {
     * @param words
     * @return a list of sets of urls. Any set of urls belong to one word.
     */
-  def searchForAll(words: List[String]):List[Set[String]] = words.map(w => searchForSingleWord(w))
+  def searchForAll(words: List[String], index: Map[String, Set[String]]):List[Set[String]] =
+    words.map(w => searchForSingleWord(w, index))
 
 
-  def searchForSingleWord(word: String): Set[String] = index.getOrElse(word, Set[String]())
+  def searchForSingleWord(word: String, index: Map[String, Set[String]]): Set[String] =
+    index.getOrElse(word, Set[String]())
 
 
-  def buildResultItem(id: String, words: List[String]):ResultItem = {
+  def buildResultItem(id: String, words: List[String], pageMap: Map[String, Page]):ResultItem = {
     val page = pageMap(id)
     val text = words.map(w => findTextForWord(w, page.text)) mkString "..."
     ResultItem(page.url, text)
   }
-
 
   /**
     * Makes an extraction for any word in the complete text of the page.
@@ -66,7 +70,6 @@ class Index {
     }
   }
 
-
   /**
     * Makes an ranking for the found urls. An url can be in more the one of the given sets. It will be counted, how often
     * an url appears in the different sets. As more often it appears in the sets, as higher it will be climbing in
@@ -78,6 +81,34 @@ class Index {
     val counted = all.foldLeft(Map[String, Int]())((b,a) => count(a, b))
     counted.toList.sortBy(_._2).reverse.map(_._1)
   }
+
+  /**
+    * Add any url to the given map.
+    * @param ids the urls.
+    * @param m map which count how often an url appears.
+    * @return a map, which contains the values of the url and how often it appeared.
+    */
+  def count(ids: Set[String], m: Map[String, Int]):Map[String, Int] = {
+    m ++ ids.map(id => if (m.contains(id)) (id, m(id) + 1) else (id, 1)).toMap
+  }
+
+
+
+}
+
+
+class Index {
+
+
+  private var index = Map[String, Set[String]]()
+
+  private var pageMap = Map[String, Page]()
+
+
+  def getIndex = index
+
+  def getPageMap = pageMap
+
 
   /**
     * Add any url to the given map.
@@ -125,7 +156,7 @@ class Index {
   /**
     * Add page to index and internal map.
     * @param page
-    * @return index.
+    * @return A new changed index.
     */
   def addToIndex(page: Page) = {
     pageMap = pageMap + (page.url -> page)
