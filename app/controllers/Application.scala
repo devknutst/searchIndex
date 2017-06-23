@@ -28,7 +28,7 @@ object Application extends Controller {
         BadRequest(views.html.search(formWithErrors))
       },
       query => {
-        val result = rankSearch.search(query, index.getIndex, index.getPageMap)
+        val result = rankSearch.search(query, index.getIndex)
         Ok(views.html.result(result.result))
       }
     )
@@ -48,7 +48,7 @@ object Application extends Controller {
         BadRequest(views.html.insert(formWithErrors, ""))
       },
       query => {
-        val msg = index.addUrl(query.url)
+        val msg = index.addUrl(List(query.url))
         Ok(views.html.insert(insertForm, msg))
       }
     )

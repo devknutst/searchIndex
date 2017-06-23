@@ -1,8 +1,14 @@
 package model
 
+import java.util.concurrent.ConcurrentHashMap
+
+
 import org.jsoup.Jsoup
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.collection.mutable.{Set, Map}
 
 case class Page(url: String, text: String)
 case class SearchQuery(query: String)
@@ -20,14 +26,15 @@ class Search {
     * Search for given words and give back the pages in a ranked list.
     * @param query search words
     * @param index index
-    * @param pageMap map for pages.
     * @return pages as ranked list.
     */
-  def search(query: SearchQuery, index: Map[String, Set[String]], pageMap: Map[String, Page]) : SearchResult = {
+  def search(query: SearchQuery, index: ConcurrentHashMap[String, Set[Page]]) : SearchResult = {
     val words = query.query.split(" ").toList
     val found = searchForAll(words, index)
+
     val ranked = makeRanking(found).take(1000)
-    val result = ranked.map(id => buildResultItem(id, words, pageMap))
+    println(ranked.length + " size ")
+    val result = ranked.map(page => buildResultItem(page, words))
     SearchResult(query.query, result)
   }
 
@@ -38,16 +45,15 @@ class Search {
     * @param words
     * @return a list of sets of urls. Any set of urls belong to one word.
     */
-  def searchForAll(words: List[String], index: Map[String, Set[String]]):List[Set[String]] =
+  def searchForAll(words: List[String], index: ConcurrentHashMap[String, Set[Page]]):List[Set[Page]] =
     words.map(w => searchForSingleWord(w, index))
 
 
-  def searchForSingleWord(word: String, index: Map[String, Set[String]]): Set[String] =
-    index.getOrElse(word, Set[String]())
+  def searchForSingleWord(word: String, index: ConcurrentHashMap[String, Set[Page]]): Set[Page] =
+    if (index.contains(word)) index.get(word) else Set.empty[Page]
 
 
-  def buildResultItem(id: String, words: List[String], pageMap: Map[String, Page]):ResultItem = {
-    val page = pageMap(id)
+  def buildResultItem(page: Page, words: List[String]):ResultItem = {
     val text = words.map(w => findTextForWord(w, page.text)) mkString "..."
     ResultItem(page.url, text)
   }
@@ -77,8 +83,8 @@ class Search {
     * @param all urls in different sets.
     * @return the urls in a ranking order as list.
     */
-  def makeRanking(all: List[Set[String]]): List[String] = {
-    val counted = all.foldLeft(Map[String, Int]())((b,a) => count(a, b))
+  def makeRanking(all: List[Set[Page]]): List[Page] = {
+    val counted = all.foldLeft(Map[Page, Int]())((b,a) => count(a, b))
     counted.toList.sortBy(_._2).reverse.map(_._1)
   }
 
@@ -88,7 +94,7 @@ class Search {
     * @param m map which count how often an url appears.
     * @return a map, which contains the values of the url and how often it appeared.
     */
-  def count(ids: Set[String], m: Map[String, Int]):Map[String, Int] = {
+  def count(ids: Set[Page], m: Map[Page, Int]):Map[Page, Int] = {
     m ++ ids.map(id => if (m.contains(id)) (id, m(id) + 1) else (id, 1)).toMap
   }
 
@@ -100,55 +106,44 @@ class Search {
 class Index {
 
 
-  private var index = Map[String, Set[String]]()
+  private var indexMap: ConcurrentHashMap[String, Set[Page]] = new ConcurrentHashMap[String, Set[Page]]()
+  private var foundUrls: ConcurrentHashMap[String, Unit] = new ConcurrentHashMap[String, Unit]()
 
-  private var pageMap = Map[String, Page]()
-
-
-  def getIndex = index
-
-  def getPageMap = pageMap
-
-
-  /**
-    * Add any url to the given map.
-    * @param ids the urls.
-    * @param m map which count how often an url appears.
-    * @return a map, which contains the values of the url and how often it appeared.
-    */
-  def count(ids: Set[String], m: Map[String, Int]):Map[String, Int] = {
-    m ++ ids.map(id => if (m.contains(id)) (id, m(id) + 1) else (id, 1)).toMap
-  }
+  def getIndex = indexMap
 
 
   /**
     * Add an url and the text for this url to the index. The function works recursiv for all links on this site
     * which connect to subdomains of this side.
     * For example www.test.de would insert www.test.de/news to, if there is a link on this page.
-    * @param url
+    * @param urls
     * @return a message if the page could be stored successful or not.
     */
-  def addUrl(url: String):String = {
-    if (pageMap.contains(url)) "Url already exists."
-    else {
-      try {
-        val document = Jsoup.connect(url).get
-        val text = document.body().text()
-          .replace(",","")
-          .replace(".", "")
-          .replace(":","")
-          .replace(";","")
-        addToIndex(Page(url, text))
-        val links = document.select("a").asScala.map(f => f.attr("href"))
-        val insideLinks = links.filter(l => l.startsWith(url))
-        for (l <- insideLinks) {
-          println("link intern" + l)
-          addUrl(l)
-        }
-        s"Side $url successfull scraped and stored."
-      } catch {
-        case e: Exception => e.getLocalizedMessage
-      }
+  @tailrec
+  final def addUrl(urls: List[String]):String = {
+
+    if (urls.isEmpty) {
+        ""
+    } else if (foundUrls.contains(urls.head)) {
+
+      addUrl(urls.tail)
+
+    } else {
+      val url = urls.head
+
+      val document = Jsoup.connect(url).get
+      val text = document.text()
+        .replace(",","")
+        .replace(".", "")
+        .replace(":","")
+        .replace(";","")
+      println("insert: " + url)
+      addToIndex(Page(url, text))
+      val links = document.select("a").asScala.map(f => f.attr("href"))
+      val insideLinks = links.filter(l => l.startsWith(url) && l != url)
+      foundUrls.asScala.foreach(f => println("found:." + f._1 ))
+      insideLinks.foreach(l => println("inside:" + l))
+      addUrl(urls.tail ++ insideLinks)
     }
   }
 
@@ -159,37 +154,25 @@ class Index {
     * @return A new changed index.
     */
   def addToIndex(page: Page) = {
-    pageMap = pageMap + (page.url -> page)
-    index = index ++ changeIndex(page)
-    index
-  }
 
-
-  /**
-    * Add page to index and give back an changed index.
-    * @param page
-    * @return the changed index.
-    */
-  def changeIndex(page: Page):Map[String, Set[String]] = {
     val words = page.text.split(" ")
-    words.map(w => getUrls(w, page.url)).toMap
+    words.foreach(w => addSingleWord(w, page))
+
   }
 
-
-  /**
-    * Returns the urls for a given word, including the new url, which is given to the function.
-    * @param word
-    * @param url new url.
-    * @return the word and all urls for this word.
-    */
-  def getUrls(word: String, url: String):(String,Set[String]) = {
-    val set = if (index.contains(word)) {
-      index(word)
-    } else {
-      Set[String]()
+  def addSingleWord(word: String, page: Page): Unit = {
+    this.synchronized {
+      if (indexMap.containsKey(word)) {
+        indexMap.get(word).+(page)
+      } else {
+        val pageSet: mutable.Set[Page] = Set(page)
+        indexMap.put(word, pageSet)
+      }
+      foundUrls.put(page.url, ())
     }
-    (word, set + url)
   }
+
+
 
 }
 
