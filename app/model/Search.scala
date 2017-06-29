@@ -1,14 +1,15 @@
 package model
 
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
-
 
 import org.jsoup.Jsoup
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.{Set, Map}
+import scala.collection.mutable.Set
+
 
 case class Page(url: String, text: String)
 case class SearchQuery(query: String)
@@ -31,9 +32,7 @@ class Search {
   def search(query: SearchQuery, index: ConcurrentHashMap[String, Set[Page]]) : SearchResult = {
     val words = query.query.split(" ").toList
     val found = searchForAll(words, index)
-
     val ranked = makeRanking(found).take(1000)
-    println(ranked.length + " size ")
     val result = ranked.map(page => buildResultItem(page, words))
     SearchResult(query.query, result)
   }
@@ -50,7 +49,10 @@ class Search {
 
 
   def searchForSingleWord(word: String, index: ConcurrentHashMap[String, Set[Page]]): Set[Page] =
-    if (index.contains(word)) index.get(word) else Set.empty[Page]
+    if (index.containsKey(word)) {
+      val test = index.get(word)
+      test
+    }  else Set.empty[Page]
 
 
   def buildResultItem(page: Page, words: List[String]):ResultItem = {
@@ -123,26 +125,31 @@ class Index {
   final def addUrl(urls: List[String]):String = {
 
     if (urls.isEmpty) {
-        ""
-    } else if (foundUrls.contains(urls.head)) {
-
+      return "Url is empty."
+    }
+    else if (foundUrls.containsKey(urls.head)) {
       addUrl(urls.tail)
-
     } else {
       val url = urls.head
-
-      val document = Jsoup.connect(url).get
-      val text = document.text()
-        .replace(",","")
-        .replace(".", "")
-        .replace(":","")
-        .replace(";","")
-      println("insert: " + url)
-      addToIndex(Page(url, text))
-      val links = document.select("a").asScala.map(f => f.attr("href"))
-      val insideLinks = links.filter(l => l.startsWith(url) && l != url)
-      foundUrls.asScala.foreach(f => println("found:." + f._1 ))
-      insideLinks.foreach(l => println("inside:" + l))
+      var insideLinks = List.empty[String]
+      try {
+        val document = Jsoup.connect(url).get
+        val text = document.text()
+          .replace(",","")
+          .replace(".", "")
+          .replace(":","")
+          .replace(";","")
+        println("insert: " + url)
+        addToIndex(Page(url, text))
+        val links = document.select("a").asScala.map(f => f.attr("href"))
+        insideLinks = links.filter(l => l.startsWith(url) && l != url).toList
+        foundUrls.asScala.foreach(f => println("found:." + f._1 ))
+        insideLinks.foreach(l => println("inside:" + l))
+      } catch {
+        case e: Throwable => {
+          e.getMessage
+        }
+      }
       addUrl(urls.tail ++ insideLinks)
     }
   }
@@ -163,7 +170,7 @@ class Index {
   def addSingleWord(word: String, page: Page): Unit = {
     this.synchronized {
       if (indexMap.containsKey(word)) {
-        indexMap.get(word).+(page)
+        indexMap.get(word).add(page)
       } else {
         val pageSet: mutable.Set[Page] = Set(page)
         indexMap.put(word, pageSet)
