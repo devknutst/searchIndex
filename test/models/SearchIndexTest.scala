@@ -1,8 +1,13 @@
+package models
+
 import model.{Index, Page, Search, SearchQuery}
 import org.scalatestplus.play.PlaySpec
 
 
-class ApplicationTest extends PlaySpec {
+
+
+
+class SearchIndexTest extends PlaySpec {
 
 
   val index = new Index()

@@ -143,8 +143,6 @@ class Index {
         addToIndex(Page(url, text))
         val links = document.select("a").asScala.map(f => f.attr("href"))
         insideLinks = links.filter(l => l.startsWith(url) && l != url).toList
-        foundUrls.asScala.foreach(f => println("found:." + f._1 ))
-        insideLinks.foreach(l => println("inside:" + l))
       } catch {
         case e: Throwable => {
           e.getMessage

@@ -1,5 +1,6 @@
-@(searchForm: Form[model.SearchQuery])
-@import helper._
+
+@(searchForm: Form[model.SearchQuery])(implicit request: RequestHeader, messages: Messages)
+
 <!DOCTYPE html>
 
 <html lang="en">
@@ -26,7 +27,7 @@
 
 
 @helper.form(action = routes.Application.search()) {
-@helper.inputText(searchForm("query"), '_label -> "Search")
+    @helper.inputText(searchForm("query"), '_label -> "Search")
 }
 
 </body>
