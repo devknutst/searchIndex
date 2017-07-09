@@ -36,11 +36,14 @@ class ControllerTest extends PlaySpec with Results {
     }
 
   }
-
 }
 
 
+
+
+
 class ExampleSpec extends PlaySpec with GuiceOneAppPerSuite {
+
 
   // Override fakeApplication if you need a Application with other than
   // default parameters.

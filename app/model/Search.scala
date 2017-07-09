@@ -1,6 +1,5 @@
 package model
 
-import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 import org.jsoup.Jsoup
@@ -101,7 +100,6 @@ class Search {
   }
 
 
-
 }
 
 
@@ -112,6 +110,7 @@ class Index {
   private var foundUrls: ConcurrentHashMap[String, Unit] = new ConcurrentHashMap[String, Unit]()
 
   def getIndex = indexMap
+  def getUrls = foundUrls
 
 
   /**

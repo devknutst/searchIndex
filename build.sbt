@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.0.0" % Test,
   "org.scalactic" %% "scalactic" % "3.0.1",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.13.+",
   guice
 )
 
